@@ -12,6 +12,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/lib/pq"
 )
 
 type Expense struct {
@@ -23,6 +24,21 @@ type Expense struct {
 }
 type Err struct {
 	Message string `json:"message"`
+}
+
+func createdExpenseHandler(c echo.Context) error {
+	var e Expense
+	err := c.Bind(&e)
+	if err != nil {
+
+		return c.JSON(http.StatusBadRequest, Err{Message: err.Error()})
+	}
+	row := db.QueryRow("INSERT INTO expenses (title, amount,note,tags) values ($1,$2,$3,$4) RETURNING id", e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
+	err = row.Scan(&e.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+	}
+	return c.JSON(http.StatusCreated, e)
 }
 
 var db *sql.DB
@@ -50,6 +66,7 @@ func main() {
 	//e.Logger.SetLevel(log.INFO)
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.POST("/expenses", createdExpenseHandler)
 	go func() {
 		if err := e.Start(os.Getenv("PORT")); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatal("shutting down the server")
