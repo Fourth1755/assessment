@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreatedExpenser(t *testing.T) {
+func TestCreatedExpense(t *testing.T) {
 	body := bytes.NewBufferString(`{
 		"title": "strawberry smoothie",
 		"amount": 82,
@@ -30,6 +31,21 @@ func TestCreatedExpenser(t *testing.T) {
 	assert.Equal(t, 82, e.Amount)
 	assert.Equal(t, "night market promotion discount 20 bath", e.Note)
 	assert.Equal(t, []string([]string{"food", "beverage"}), e.Tags)
+}
+func TestGetExpenseByID(t *testing.T) {
+	c := seedExpense(t)
+
+	var latest Expense
+	res := request(http.MethodGet, uri("expenses", strconv.Itoa(c.ID)), nil)
+	err := res.Decode(&latest)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, c.ID, latest.ID)
+	assert.NotEmpty(t, latest.Title)
+	assert.NotEmpty(t, latest.Amount)
+	assert.NotEmpty(t, latest.Note)
+	assert.NotEmpty(t, latest.Tags)
 }
 
 type Response struct {
@@ -60,4 +76,18 @@ func request(method, url string, body io.Reader) *Response {
 	client := http.Client{}
 	res, err := client.Do(req)
 	return &Response{res, err}
+}
+func seedExpense(t *testing.T) Expense {
+	var e Expense
+	body := bytes.NewBufferString(`{
+		"title": "strawberry smoothie",
+		"amount": 82,
+		"note": "night market promotion discount 20 bath", 
+		"tags": ["food", "beverage"]
+	}`)
+	err := request(http.MethodPost, uri("expenses"), body).Decode(&e)
+	if err != nil {
+		t.Fatal("can't create uomer:", err)
+	}
+	return e
 }
