@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,19 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
-
-type Expense struct {
-	ID     int      `json:"id"`
-	Title  string   `json:"title"`
-	Amount int      `json:"amount"`
-	Note   string   `json:"note"`
-	Tags   []string `json:"tags"`
-}
-type Err struct {
-	Message string `json:"message"`
-}
-
-var db *sql.DB
 
 func main() {
 	handler.InitDB()
