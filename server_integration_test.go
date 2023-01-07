@@ -67,6 +67,16 @@ func TestUpdateExpenseByID(t *testing.T) {
 	assert.Equal(t, "night market promotion discount 20 bath", latest.Note)
 	assert.Equal(t, []string([]string{"food", "beverage"}), latest.Tags)
 }
+func TestGetAllExpense(t *testing.T) {
+	seedExpense(t)
+	var ex []Expense
+	res := request(http.MethodGet, uri("expenses"), nil)
+	err := res.Decode(&ex)
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, http.StatusOK, res.StatusCode)
+	assert.Greater(t, len(ex), 0)
+}
 
 type Response struct {
 	*http.Response
