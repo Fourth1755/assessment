@@ -30,7 +30,6 @@ func createdExpenseHandler(c echo.Context) error {
 	var e Expense
 	err := c.Bind(&e)
 	if err != nil {
-
 		return c.JSON(http.StatusBadRequest, Err{Message: err.Error()})
 	}
 	row := db.QueryRow("INSERT INTO expenses (title, amount,note,tags) values ($1,$2,$3,$4) RETURNING id", e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
@@ -57,6 +56,24 @@ func getExpenseByIdHandler(c echo.Context) error {
 	default:
 		return c.JSON(http.StatusInternalServerError, Err{Message: "can't scan expense:" + err.Error()})
 	}
+}
+func updateExpenseByIdHandler(c echo.Context) error {
+	id := c.Param("id")
+	var e Expense
+	err := c.Bind(&e)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Err{Message: err.Error()})
+	}
+	//row := db.QueryRow("UPDATE expenses SET title=$2 ,amount=$3,note=$4,tags=$5 WHERE id = $1", id, e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
+	stmt, err := db.Prepare("UPDATE expenses SET title=$2 ,amount=$3,note=$4,tags=$5 WHERE id = $1")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: "can't prepare statment update:" + err.Error()})
+	}
+	_, err = stmt.Exec(id, e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: "can't prepare query expense statment:" + err.Error()})
+	}
+	return c.JSON(http.StatusOK, e)
 }
 
 var db *sql.DB
@@ -86,6 +103,7 @@ func main() {
 	e.Use(middleware.Recover())
 	e.POST("/expenses", createdExpenseHandler)
 	e.GET("/expenses/:id", getExpenseByIdHandler)
+	e.PUT("/expenses/:id", updateExpenseByIdHandler)
 	go func() {
 		if err := e.Start(os.Getenv("PORT")); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatal("shutting down the server")
