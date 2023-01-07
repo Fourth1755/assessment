@@ -47,6 +47,26 @@ func TestGetExpenseByID(t *testing.T) {
 	assert.NotEmpty(t, latest.Note)
 	assert.NotEmpty(t, latest.Tags)
 }
+func TestUpdateExpenseByID(t *testing.T) {
+	c := seedExpense(t)
+	body := bytes.NewBufferString(`{
+		"title": "strawberry smoothie",
+		"amount": 82,
+		"note": "night market promotion discount 20 bath", 
+		"tags": ["food", "beverage"]
+	}`)
+	var latest Expense
+	res := request(http.MethodPut, uri("expenses", strconv.Itoa(c.ID)), body)
+	err := res.Decode(&latest)
+	latest.ID = c.ID
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, c.ID, latest.ID)
+	assert.Equal(t, "strawberry smoothie", latest.Title)
+	assert.Equal(t, 82, latest.Amount)
+	assert.Equal(t, "night market promotion discount 20 bath", latest.Note)
+	assert.Equal(t, []string([]string{"food", "beverage"}), latest.Tags)
+}
 
 type Response struct {
 	*http.Response
