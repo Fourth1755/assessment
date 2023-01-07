@@ -75,6 +75,29 @@ func updateExpenseByIdHandler(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, e)
 }
+func getAllExpenseHandler(c echo.Context) error {
+	stmt, err := db.Prepare("SELECT id, title, amount,note,tags FROM expenses")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: "can't prepare query all expenses statment" + err.Error()})
+	}
+	rows, err := stmt.Query()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: "can't query all expenses" + err.Error()})
+	}
+	var expenses = []Expense{}
+	for rows.Next() {
+		var e Expense
+		err := rows.Scan(&e.ID, &e.Title, &e.Amount, &e.Note, pq.Array(&e.Tags))
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, Err{Message: "can't query all expenses" + err.Error()})
+		}
+		e = Expense{
+			ID: e.ID, Title: e.Title, Amount: e.Amount, Note: e.Note, Tags: e.Tags,
+		}
+		expenses = append(expenses, e)
+	}
+	return c.JSON(http.StatusOK, expenses)
+}
 
 var db *sql.DB
 
@@ -104,6 +127,7 @@ func main() {
 	e.POST("/expenses", createdExpenseHandler)
 	e.GET("/expenses/:id", getExpenseByIdHandler)
 	e.PUT("/expenses/:id", updateExpenseByIdHandler)
+	e.GET("/expenses", getAllExpenseHandler)
 	go func() {
 		if err := e.Start(os.Getenv("PORT")); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatal("shutting down the server")
