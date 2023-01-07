@@ -21,10 +21,13 @@ type Expense struct {
 type Err struct {
 	Message string `json:"message"`
 }
+type handler struct {
+	DB *sql.DB
+}
 
 var db *sql.DB
 
-func InitDB() {
+func InitDB() *sql.DB {
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
@@ -38,8 +41,12 @@ func InitDB() {
 		log.Fatal("can't create table", err)
 	}
 	fmt.Println("create table success")
+	return db
 }
-func CreatedExpenseHandler(c echo.Context) error {
+func NewApplication(db *sql.DB) *handler {
+	return &handler{db}
+}
+func (h *handler) CreatedExpenseHandler(c echo.Context) error {
 	var e Expense
 	err := c.Bind(&e)
 	if err != nil {
@@ -52,7 +59,7 @@ func CreatedExpenseHandler(c echo.Context) error {
 	}
 	return c.JSON(http.StatusCreated, e)
 }
-func GetExpenseByIdHandler(c echo.Context) error {
+func (h *handler) GetExpenseByIdHandler(c echo.Context) error {
 	id := c.Param("id")
 	stmt, err := db.Prepare("SELECT id, title, amount,note,tags FROM expenses WHERE id = $1")
 	if err != nil {
@@ -70,7 +77,7 @@ func GetExpenseByIdHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, Err{Message: "can't scan expense:" + err.Error()})
 	}
 }
-func UpdateExpenseByIdHandler(c echo.Context) error {
+func (h *handler) UpdateExpenseByIdHandler(c echo.Context) error {
 	id := c.Param("id")
 	var e Expense
 	err := c.Bind(&e)
@@ -88,7 +95,7 @@ func UpdateExpenseByIdHandler(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, e)
 }
-func GetAllExpenseHandler(c echo.Context) error {
+func (h *handler) GetAllExpenseHandler(c echo.Context) error {
 	stmt, err := db.Prepare("SELECT id, title, amount,note,tags FROM expenses")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, Err{Message: "can't prepare query all expenses statment" + err.Error()})

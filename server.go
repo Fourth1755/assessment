@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	handler.InitDB()
+	db := handler.InitDB()
 	fmt.Println("Please use server.go for main file")
 	fmt.Println("start at port:", os.Getenv("PORT"))
 
@@ -22,10 +22,12 @@ func main() {
 	//e.Logger.SetLevel(log.INFO)
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.POST("/expenses", handler.CreatedExpenseHandler)
-	e.GET("/expenses/:id", handler.GetExpenseByIdHandler)
-	e.PUT("/expenses/:id", handler.UpdateExpenseByIdHandler)
-	e.GET("/expenses", handler.GetAllExpenseHandler)
+
+	h := handler.NewApplication(db)
+	e.POST("/expenses", h.CreatedExpenseHandler)
+	e.GET("/expenses/:id", h.GetExpenseByIdHandler)
+	e.PUT("/expenses/:id", h.UpdateExpenseByIdHandler)
+	e.GET("/expenses", h.GetAllExpenseHandler)
 	go func() {
 		if err := e.Start(os.Getenv("PORT")); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatal("shutting down the server")
